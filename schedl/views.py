@@ -43,7 +43,10 @@ def upcoming(request):
         cursor.execute("INSERT IGNORE INTO participants values({},'{}')".format(event_id,email_id))
         connection.commit()
     
-    query = """SELECT * FROM events where event_date>=CURDATE() AND event_time>=CURTIME() ORDER BY event_date;"""
+    query = """
+    SELECT e.*,u.name FROM events e, user u
+    where e.host_id=u.user_id AND e.event_date>=CURDATE() AND e.event_time>=CURTIME() ORDER BY event_date;
+    """
     cursor.execute(query)
     data=cursor.fetchall()
     a=[]
@@ -57,15 +60,7 @@ def upcoming(request):
         cursor.execute("select count(*) from participants where event_id={}".format(i[0]))
         x=cursor.fetchall()[0][0]
         d["registered"]=str(x)
-        cursor.execute(f"SELECT name from user where user_id={i[4]};")
-        res=cursor.fetchall()
-        try:
-            if(res[0][0]==None):
-                d["host"]="Not found"
-            else:
-                d["host"]=str(res[0][0])
-        except:
-            d["host"]="not found"
+        d["host"]=i[6]
         d["details"]=str(i[5])
         a.append(d)
     context={"data":a}
@@ -75,7 +70,10 @@ def upcoming(request):
 
 
 def past(request):
-    query = """SELECT * FROM events where event_date<=CURDATE() AND event_time<=CURTIME() ORDER BY event_date DESC;"""
+    query = """
+    SELECT e.*,u.name FROM events e, user u
+    where e.host_id=u.user_id AND e.event_date<=CURDATE() AND e.event_time<=CURTIME() ORDER BY event_date DESC;
+    """
     cursor.execute(query)
     data=cursor.fetchall()
     a=[]
@@ -86,15 +84,7 @@ def past(request):
         d["date"]=str(i[2])
         t_obj = datetime.strptime( str(i[3]), '%H:%M:%S')
         d["time"]=str(t_obj.strftime("%I:%M %p"))
-        cursor.execute(f"SELECT name from user where user_id={i[4]};")
-        res=cursor.fetchall()
-        try:
-            if(res[0][0]==None):
-                d["host"]="Not found"
-            else:
-                d["host"]=str(res[0][0])
-        except:
-            d["host"]="Not found"
+        d["host"]=i[6]
         d["details"]=str(i[5])
         a.append(d)
     context={"data":a}
@@ -108,5 +98,4 @@ def get_list_based_on_id(request, item_id):
     ans=[]
     for i in data:
         ans.append(str(i[0]))
-    
     return (JsonResponse({'data_list':ans}))
